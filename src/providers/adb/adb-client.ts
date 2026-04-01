@@ -160,10 +160,17 @@ export class AdbLogProvider extends LogProvider {
     private estimateLogEntryBytes(
         entry: (typeof this.logEntries)[number],
     ): number {
-        return Buffer.byteLength(
-            `${entry.date}${entry.time}${entry.timestamp}${entry.pid}${entry.tid}${entry.tag}${entry.processName ?? ''}${entry.level}${entry.message}`,
-            'utf8',
-        );
+        const numberFieldsBytes = 8 * 3;
+        const structuralOverheadBytes = 40;
+        const textChars =
+            entry.date.length +
+            entry.time.length +
+            entry.level.length +
+            (entry.tag?.length ?? 0) +
+            (entry.message?.length ?? 0) +
+            (entry.processName?.length ?? 0);
+
+        return numberFieldsBytes + structuralOverheadBytes + textChars * 2;
     }
 
     private scheduleFlushLogs(): void {

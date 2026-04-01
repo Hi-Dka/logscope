@@ -1,0 +1,26 @@
+diff --git a/node_modules/@devicefarmer/adbkit-logcat/lib/logcat/entry.js b/node_modules/@devicefarmer/adbkit-logcat/lib/logcat/entry.js
+index e8f35b9..087ed4c 100644
+--- a/node_modules/@devicefarmer/adbkit-logcat/lib/logcat/entry.js
++++ b/node_modules/@devicefarmer/adbkit-logcat/lib/logcat/entry.js
+@@ -33,7 +33,7 @@ var Entry = /** @class */ (function () {
+         length += 1; // NULL-byte
+         length += this.message.length;
+         length += 1; // NULL-byte
+-        var buffer = new Buffer(length);
++        var buffer = Buffer.alloc(length);
+         var cursor = 0;
+         buffer.writeUInt16LE(length - 20, cursor);
+         cursor += 4; // include 2 bytes of padding
+diff --git a/node_modules/@devicefarmer/adbkit-logcat/lib/logcat/parser/binary.js b/node_modules/@devicefarmer/adbkit-logcat/lib/logcat/parser/binary.js
+index f579409..e88acea 100644
+--- a/node_modules/@devicefarmer/adbkit-logcat/lib/logcat/parser/binary.js
++++ b/node_modules/@devicefarmer/adbkit-logcat/lib/logcat/parser/binary.js
+@@ -25,7 +25,7 @@ var Binary = /** @class */ (function (_super) {
+     __extends(Binary, _super);
+     function Binary() {
+         var _this = _super !== null && _super.apply(this, arguments) || this;
+-        _this.buffer = new Buffer(0);
++        _this.buffer = Buffer.alloc(0);
+         return _this;
+     }
+     Binary.prototype.parse = function (chunk) {

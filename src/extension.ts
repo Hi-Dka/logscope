@@ -1,41 +1,76 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import { AdbDataSource } from './providers/adb/adb-datasource';
+import { AndroidDevicesMonitor } from './monitor/android-devices-monitor';
+import { AdbLogProvider } from './providers/adb/adb-client';
+import { LogProvider } from './providers/log-provider';
+import { log } from 'console';
+import { LogEntry } from './common/types';
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
-export function activate(context: vscode.ExtensionContext) {
-    // Use the console to output diagnostic information (console.log) and errors (console.error)
-    // This line of code will only be executed once when your extension is activated
-    console.log('Congratulations, your extension "hidka" is now active!');
+export async function activate(context: vscode.ExtensionContext) {
+    const output = vscode.window.createOutputChannel('LogScope');
+    context.subscriptions.push(output);
 
-    // Initialize ADB DataSource
-    const adbSource = new AdbDataSource();
-    context.subscriptions.push(adbSource);
+    const logger = {
+        info: (message: string) => {
+            output.appendLine(`[INFO] ${message}`);
+            console.log(message);
+        },
+        error: (message: string) => {
+            output.appendLine(`[ERROR] ${message}`);
+            console.error(message);
+        },
+    };
 
-    // Subscribe to device changes
-    adbSource.onDevicesChanged((devices) => {
-        const deviceList = devices.map((d) => `${d.id} (${d.type})`).join(', ');
-        vscode.window.showInformationMessage(
-            `ADB Devices Changed: [${deviceList}]`,
+    logger.info('Congratulations, your extension "hidka" is now active!');
+
+    const AndroidMonitor = AndroidDevicesMonitor.getInstance();
+    try {
+        await AndroidMonitor.startMonitoring();
+        const unsubscribe = AndroidMonitor.onDidDevicesChange((devices) => {
+            if (devices.length === 0) {
+                logger.info('No Android device connected');
+                return;
+            }
+
+            devices.forEach((device) => {
+                console.log(`Connected device: ${device.id} (${device.type})`);
+                const logProvider = new AdbLogProvider(device.id);
+
+                logProvider.onDidData((data: LogEntry[], sourceId: string) => {
+                    for (const entry of data) {
+                        const logLine = `[${entry.date} ${entry.time}] [${entry.level}] [${entry.processName ?? 'unknown'}:${entry.pid}] ${entry.tag}: ${entry.message}`;
+                        logger.info(`[${sourceId}] ${logLine}`);
+                    }
+                });
+
+                logProvider.start().catch((err) => {
+                    logger.error(
+                        `Failed to start log provider for device ${device.id}: ${String(
+                            err,
+                        )}`,
+                    );
+                });
+            });
+        });
+
+        context.subscriptions.push(new vscode.Disposable(unsubscribe));
+    } catch (err) {
+        console.error(
+            `Failed to start Android device monitoring: ${String(err)}`,
         );
-        console.log('Updated Device List:', devices);
-    });
+    }
 
-    // Start tracking
-    adbSource.start();
+    // AdbLogProvider()
+    output.show(true);
 
-    // The command has been defined in the package.json file
-    // Now provide the implementation of the command with registerCommand
-    // The commandId parameter must match the command field in package.json
     const disposable = vscode.commands.registerCommand(
         'hidka.helloWorld',
         () => {
-            // The code you place here will be executed every time your command is executed
-            // Display a message box to the user
             vscode.window.showInformationMessage('Hello World from logcat!');
-            console.log('Current devices:', adbSource.getDevices());
+            logger.info('Hello World command executed');
         },
     );
 
@@ -43,4 +78,6 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 // This method is called when your extension is deactivated
-export function deactivate() {}
+export function deactivate() {
+    AndroidDevicesMonitor.getInstance().dispose();
+}

@@ -193,11 +193,23 @@ export class AdbLogProvider extends LogProvider {
         const level = Logcat.Priority.toLetter(entry.priority);
         const processName =
             this.processNameCache.get(entry.pid) ?? 'unknown_process';
+        const d = entry.date;
+
+        const year = d.getFullYear();
+        const month = `${d.getMonth() + 1}`.padStart(2, '0');
+        const day = `${d.getDate()}`.padStart(2, '0');
+        const hours = `${d.getHours()}`.padStart(2, '0');
+        const minutes = `${d.getMinutes()}`.padStart(2, '0');
+        const seconds = `${d.getSeconds()}`.padStart(2, '0');
+        const millis = `${d.getMilliseconds()}`.padStart(3, '0');
+
+        const dateStr = `${year}-${month}-${day}`;
+        const timeStr = `${hours}:${minutes}:${seconds}.${millis}`;
 
         this.logEntries.push({
-            date: entry.date.toISOString().split('T')[0],
-            time: entry.date.toISOString().split('T')[1].replace('Z', ''),
-            timestamp: entry.date.getTime(),
+            date: dateStr,
+            time: timeStr,
+            timestamp: d.getTime(),
             pid: entry.pid,
             tid: entry.tid,
             tag: entry.tag,

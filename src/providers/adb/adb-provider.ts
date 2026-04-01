@@ -17,7 +17,7 @@ export class AdbLogProvider extends LogProvider {
     private static readonly MAX_BATCH_BYTES = 512 * 1024;
 
     public readonly sourceType = 'adb';
-    private readonly sourceId: string;
+    private readonly deviceId: string;
     private readonly deviceClient: DeviceClient;
     private processNameCache = new Map<number, string>();
     private logReader: LogcatReader | null = null;
@@ -26,12 +26,12 @@ export class AdbLogProvider extends LogProvider {
     private isRefreshingProcessCache = false;
     private droppedLogCount = 0;
 
-    constructor(sourceId: string) {
+    constructor(deviceId: string) {
         super();
-        this.sourceId = sourceId;
+        this.deviceId = deviceId;
         this.deviceClient = AndroidDevicesMonitor.getInstance()
             .getClient()
-            .getDevice(sourceId);
+            .getDevice(deviceId);
     }
 
     private async freshProcessNameCache(): Promise<void> {
@@ -56,7 +56,7 @@ export class AdbLogProvider extends LogProvider {
             }
 
             console.log(
-                `[ADB][${this.sourceId}] refreshed process name cache with ${nextCache.size} entries`,
+                `[ADB][${this.deviceId}] refreshed process name cache with ${nextCache.size} entries`,
             );
 
             this.processNameCache = nextCache;
@@ -113,7 +113,7 @@ export class AdbLogProvider extends LogProvider {
 
         if (this.droppedLogCount > 0) {
             console.warn(
-                `[ADB][${this.sourceId}] dropped ${this.droppedLogCount} logs because buffer exceeded ${AdbLogProvider.MAX_BUFFER_SIZE}`,
+                `[ADB][${this.deviceId}] dropped ${this.droppedLogCount} logs because buffer exceeded ${AdbLogProvider.MAX_BUFFER_SIZE}`,
             );
             this.droppedLogCount = 0;
         }
@@ -125,7 +125,7 @@ export class AdbLogProvider extends LogProvider {
                 continue;
             }
 
-            this.emitData(batch, this.sourceId);
+            this.emitData(batch, this.deviceId);
         }
     }
 
@@ -242,11 +242,11 @@ export class AdbLogProvider extends LogProvider {
         });
 
         this.logReader.on('error', (err: unknown) => {
-            console.error(`[ADB][${this.sourceId}] log reader error:`, err);
+            console.error(`[ADB][${this.deviceId}] log reader error:`, err);
         });
 
         this.logReader.on('end', () => {
-            console.log(`[ADB][${this.sourceId}] log stream ended`);
+            console.log(`[ADB][${this.deviceId}] log stream ended`);
             this.clearFlushTimer();
             this.flushLogs(true);
             this.logReader = null;

@@ -133,8 +133,10 @@ export class AdbLogProvider extends LogProvider {
         const batch: LogEntry[] = [];
         let totalBytes = 0;
 
-        while (this.logEntries.length > 0) {
-            const nextEntry = this.logEntries[0];
+        while (!this.logEntries.isEmpty()) {
+            const nextEntry = this.logEntries.peekAt(0);
+            if (!nextEntry) break;
+
             const nextEntryBytes = this.estimateLogEntryBytes(nextEntry);
 
             const reachesCountLimit =
@@ -148,18 +150,16 @@ export class AdbLogProvider extends LogProvider {
             }
 
             const shifted = this.logEntries.shift();
-            if (!shifted) break;
-
-            batch.push(shifted);
-            totalBytes += nextEntryBytes;
+            if (shifted) {
+                batch.push(shifted);
+                totalBytes += nextEntryBytes;
+            }
         }
 
         return batch;
     }
 
-    private estimateLogEntryBytes(
-        entry: (typeof this.logEntries)[number],
-    ): number {
+    private estimateLogEntryBytes(entry: LogEntry): number {
         const numberFieldsBytes = 8 * 3;
         const structuralOverheadBytes = 40;
         const textChars =

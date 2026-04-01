@@ -52,6 +52,7 @@
         "typescript-eslint": "^8.52.0"
     },
     "dependencies": {
-        "@devicefarmer/adbkit": "^3.3.8"
+        "@devicefarmer/adbkit": "^3.3.8",
+        "denque": "^2.1.0"
     }
 }

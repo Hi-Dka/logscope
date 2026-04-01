@@ -1,11 +1,12 @@
 import { LogEntry } from '../common/types';
+import Denque from 'denque';
 
 type LogDataListener = (data: LogEntry[], sourceId: string) => void;
 
 export abstract class LogProvider {
     // sourceId is android device id.
     public abstract readonly sourceType: 'adb' | 'file' | 'network';
-    protected logEntries: LogEntry[] = [];
+    protected logEntries = new Denque<LogEntry>();
     private readonly listeners = new Set<LogDataListener>();
 
     public onDidData(callback: LogDataListener): () => void {

@@ -23,7 +23,7 @@ export class AndroidDevicesMonitor {
     }
 
     public async startMonitoring() {
-        if (this.tracker) return;
+        if (this.tracker) {return;}
 
         try {
             this.devices = await this.client.listDevices();

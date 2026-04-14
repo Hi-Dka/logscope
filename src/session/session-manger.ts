@@ -5,6 +5,8 @@ export class SessionManager {
 
     public createSession(deviceId: string): void {
         if (this.activeSessions.has(deviceId)) {
+            // TODO(yangxinxin): Handle this case, maybe throw an error or log a warning
+            return;
         }
 
         const newSession = new LogSesion(deviceId);

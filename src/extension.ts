@@ -24,35 +24,39 @@ export async function activate(context: vscode.ExtensionContext) {
 
     logger.info('Congratulations, your extension "hidka" is now active!');
 
-    const AndroidMonitor = AndroidDevicesMonitor.getInstance();
+    const androidMonitor = AndroidDevicesMonitor.getInstance();
     try {
-        await AndroidMonitor.startMonitoring();
-        const unsubscribe = AndroidMonitor.onDidDevicesChange((devices) => {
-            if (devices.length === 0) {
-                logger.info('No Android device connected');
-                return;
-            }
+        await androidMonitor.startMonitoring();
+        const unsubscribe = androidMonitor.onDidDevicesChange(
+            (devices): void => {
+                if (devices.length === 0) {
+                    logger.info('No Android device connected');
+                    return;
+                }
 
-            devices.forEach((device) => {
-                console.log(`Connected device: ${device.id} (${device.type})`);
-                const logProvider = new AdbLogProvider(device.id);
-
-                logProvider.onDidData((data: LogEntry[], sourceId: string) => {
-                    for (const entry of data) {
-                        const logLine = `[${entry.date} ${entry.time}] [${entry.level}] [${entry.processName ?? 'unknown'}:${entry.pid}] ${entry.tag}: ${entry.message}`;
-                        logger.info(`[${sourceId}] ${logLine}`);
-                    }
-                });
-
-                logProvider.start().catch((err) => {
-                    logger.error(
-                        `Failed to start log provider for device ${device.id}: ${String(
-                            err,
-                        )}`,
+                devices.forEach((device) => {
+                    console.log(
+                        `Connected device: ${device.id} (${device.type})`,
                     );
+                    //     const logProvider = new AdbLogProvider(device.id);
+
+                    //     logProvider.onDidData((data: LogEntry[], sourceId: string) => {
+                    //         for (const entry of data) {
+                    //             const logLine = `[${entry.date} ${entry.time}] [${entry.level}] [${entry.processName ?? 'unknown'}:${entry.pid}] ${entry.tag}: ${entry.message}`;
+                    //             logger.info(`[${sourceId}] ${logLine}`);
+                    //         }
+                    //     });
+
+                    //     logProvider.start().catch((err) => {
+                    //         logger.error(
+                    //             `Failed to start log provider for device ${device.id}: ${String(
+                    //                 err,
+                    //             )}`,
+                    //         );
+                    //     });
                 });
-            });
-        });
+            },
+        );
 
         context.subscriptions.push(new vscode.Disposable(unsubscribe));
     } catch (err) {
@@ -72,7 +76,16 @@ export async function activate(context: vscode.ExtensionContext) {
         },
     );
 
+    // const openLogcatPanelDisposable = vscode.commands.registerCommand(
+    //     'hidka.openLogcatPanel',
+    //     () => {
+    //         LogcatPanel.render(context.extensionUri, sessionManager);
+    //         logger.info('Open Logcat Panel command executed');
+    //     },
+    // );
+
     context.subscriptions.push(disposable);
+    // context.subscriptions.push(openLogcatPanelDisposable);
 }
 
 // This method is called when your extension is deactivated

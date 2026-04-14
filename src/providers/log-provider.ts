@@ -17,7 +17,9 @@ export abstract class LogProvider {
     }
 
     protected emitData(data: LogEntry[], sourceId: string): void {
-        if (data.length === 0) return;
+        if (data.length === 0) {
+            return;
+        }
 
         this.listeners.forEach((listener) => {
             try {

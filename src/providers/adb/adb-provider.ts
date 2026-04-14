@@ -35,7 +35,9 @@ export class AdbLogProvider extends LogProvider {
     }
 
     private async freshProcessNameCache(): Promise<void> {
-        if (this.isRefreshingProcessCache) return;
+        if (this.isRefreshingProcessCache) {
+            return;
+        }
         this.isRefreshingProcessCache = true;
 
         try {
@@ -90,7 +92,9 @@ export class AdbLogProvider extends LogProvider {
     }
 
     private startProcessNameCacheRefresh(): void {
-        if (this.processCacheTimer) return;
+        if (this.processCacheTimer) {
+            return;
+        }
 
         void this.freshProcessNameCache();
         this.processCacheTimer = setInterval(() => {
@@ -99,14 +103,18 @@ export class AdbLogProvider extends LogProvider {
     }
 
     private stopProcessNameCacheRefresh(): void {
-        if (!this.processCacheTimer) return;
+        if (!this.processCacheTimer) {
+            return;
+        }
 
         clearInterval(this.processCacheTimer);
         this.processCacheTimer = null;
     }
 
     private flushLogs(force = false): void {
-        if (this.logEntries.length === 0) return;
+        if (this.logEntries.length === 0) {
+            return;
+        }
         if (!force && this.logEntries.length < AdbLogProvider.MAX_BATCH_SIZE) {
             return;
         }
@@ -135,7 +143,9 @@ export class AdbLogProvider extends LogProvider {
 
         while (!this.logEntries.isEmpty()) {
             const nextEntry = this.logEntries.peekAt(0);
-            if (!nextEntry) break;
+            if (!nextEntry) {
+                break;
+            }
 
             const nextEntryBytes = this.estimateLogEntryBytes(nextEntry);
 
@@ -174,7 +184,9 @@ export class AdbLogProvider extends LogProvider {
     }
 
     private scheduleFlushLogs(): void {
-        if (this.logFlushTimer) return;
+        if (this.logFlushTimer) {
+            return;
+        }
 
         this.logFlushTimer = setTimeout(() => {
             this.logFlushTimer = null;
@@ -183,7 +195,9 @@ export class AdbLogProvider extends LogProvider {
     }
 
     private clearFlushTimer(): void {
-        if (!this.logFlushTimer) return;
+        if (!this.logFlushTimer) {
+            return;
+        }
 
         clearTimeout(this.logFlushTimer);
         this.logFlushTimer = null;
@@ -254,7 +268,9 @@ export class AdbLogProvider extends LogProvider {
     }
 
     public async start(): Promise<void> {
-        if (this.logReader) return;
+        if (this.logReader) {
+            return;
+        }
         this.startProcessNameCacheRefresh();
         await this.getLogs();
     }

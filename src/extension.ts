@@ -35,7 +35,7 @@ export async function activate(context: vscode.ExtensionContext) {
                 }
 
                 devices.forEach((device) => {
-                    console.log(
+                    logger.info(
                         `Connected device: ${device.id} (${device.type})`,
                     );
                     //     const logProvider = new AdbLogProvider(device.id);
@@ -76,6 +76,34 @@ export async function activate(context: vscode.ExtensionContext) {
         },
     );
 
+    const disposable2 = vscode.commands.registerCommand(
+        'hidka.showOutput',
+        () => {
+            output.show(true);
+            logger.info('Show Output command executed');
+            const androidMonitor = AndroidDevicesMonitor.getInstance();
+            const devices = androidMonitor.gerDevices();
+            devices.forEach((device) => {
+                logger.info(`Device: ${device.id} (${device.type})`);
+                const logProvider = new AdbLogProvider(device.id);
+
+                logProvider.onDidData((data: LogEntry[], sourceId: string) => {
+                    for (const entry of data) {
+                        const logLine = `[${entry.date} ${entry.time}] [${entry.level}] [${entry.processName ?? 'unknown'}:${entry.pid}] ${entry.tag}: ${entry.message}`;
+                        // logger.info(`[${sourceId}] ${logLine}`);
+                    }
+                });
+
+                logProvider.start().catch((err) => {
+                    logger.error(
+                        `Failed to start log provider for device ${device.id}: ${String(
+                            err,
+                        )}`,
+                    );
+                });
+            });
+        },
+    );
     // const openLogcatPanelDisposable = vscode.commands.registerCommand(
     //     'hidka.openLogcatPanel',
     //     () => {
@@ -85,6 +113,7 @@ export async function activate(context: vscode.ExtensionContext) {
     // );
 
     context.subscriptions.push(disposable);
+    context.subscriptions.push(disposable2);
     // context.subscriptions.push(openLogcatPanelDisposable);
 }
 

@@ -4,12 +4,95 @@ import { AndroidDevicesMonitor } from '../../monitor/android-devices-monitor';
 import { LogEntry } from '../../common/types';
 import Logcat from '@devicefarmer/adbkit-logcat/lib/logcat';
 import Entry from '@devicefarmer/adbkit-logcat/lib/logcat/entry';
-import Reader = require('@devicefarmer/adbkit-logcat/lib/logcat/reader');
-import { Duplex } from 'stream';
+import { Duplex, Transform, TransformCallback } from 'stream';
+import { SignatureHelpTriggerKind } from 'vscode';
+import { log } from 'console';
+import { pid } from 'process';
 
-type LogcatReader = Reader;
+type LogcatReader = ReturnType<typeof Logcat.readStream>;
 type LogcatEntry = Entry;
 
+const HEADER_SIZE_V1 = 20;
+const HEADER_SIZE_MAX = 100;
+const DEFAULT_BUFFER_SIZE = 1024 * 1024;
+declare module 'stream' {
+    interface Duplex {
+        _buf?: Buffer;
+        _off?: number;
+    }
+}
+
+class LogParser extends Transform {
+    private readonly _buffer: Buffer;
+    private _writeOffset: number = 0;
+    private _readOffset: number = 0;
+
+    constructor(bufferSize: number = DEFAULT_BUFFER_SIZE) {
+        super({ readableObjectMode: false });
+        this._buffer = Buffer.allocUnsafe(bufferSize);
+    }
+
+    _transform(
+        chunk: Buffer,
+        _: BufferEncoding,
+        callback: TransformCallback,
+    ): void {
+        if (chunk.length > this._freeSpace) {
+            const remaining = this._writeOffset - this._readOffset;
+            if (remaining > 0) {
+                this._buffer.copy(
+                    this._buffer,
+                    0,
+                    this._readOffset,
+                    this._writeOffset,
+                );
+            }
+            this._readOffset = 0;
+            this._writeOffset = remaining;
+
+            if (chunk.length > this._freeSpace) {
+                return callback(
+                    new Error('Single log message too large for buffer'),
+                );
+            }
+        }
+
+        chunk.copy(this._buffer, this._writeOffset);
+        this._writeOffset += chunk.length;
+
+        while (this._writeOffset - this._readOffset >= 4) {
+            const currentPos = this._readOffset;
+
+            const msgLength = this._buffer.readUInt16LE(currentPos);
+            let headerSize = this._buffer.readUInt16LE(currentPos + 2);
+
+            if (headerSize < HEADER_SIZE_V1 || headerSize > HEADER_SIZE_MAX) {
+                headerSize = HEADER_SIZE_V1;
+            }
+
+            const totalPacketLength = headerSize + msgLength;
+
+            if (this._writeOffset - this._readOffset < totalPacketLength) {
+                break;
+            }
+
+            const fullEntryBuffer = this._buffer.subarray(
+                this._readOffset,
+                this._readOffset + totalPacketLength,
+            );
+
+            this.push(fullEntryBuffer);
+
+            this._readOffset += totalPacketLength;
+        }
+
+        callback();
+    }
+
+    private get _freeSpace(): number {
+        return this._buffer.length - this._writeOffset;
+    }
+}
 export class AdbLogProvider extends LogProvider {
     private static readonly MAX_BATCH_SIZE = 200;
     private static readonly MAX_BATCH_WAIT_MS = 100;
@@ -20,7 +103,7 @@ export class AdbLogProvider extends LogProvider {
     private readonly deviceId: string;
     private readonly deviceClient: DeviceClient;
     private processNameCache = new Map<number, string>();
-    private logReader: LogcatReader | null = null;
+    private logReader: Duplex | null = null;
     private processCacheTimer: NodeJS.Timeout | null = null;
     private logFlushTimer: NodeJS.Timeout | null = null;
     private isRefreshingProcessCache = false;
@@ -247,24 +330,76 @@ export class AdbLogProvider extends LogProvider {
     }
 
     private async getLogs(): Promise<void> {
-        this.logReader = (await this.deviceClient.openLogcat({
-            clear: true,
-        })) as unknown as LogcatReader;
+        const logParser = new LogParser();
 
-        this.logReader.on('entry', (entry: LogcatEntry) => {
-            this.hydrateLogEntry(entry);
+        this.logReader = await this.deviceClient.shell(
+            'logcat -c 2>/dev/null && logcat -B *:I 2>/dev/null ',
+        );
+
+        this.logReader.pipe(logParser);
+
+        logParser.on('data', (entryBuffer: Buffer) => {
+            const pid = entryBuffer.readInt32LE(4);
+            const tid = entryBuffer.readInt32LE(8);
+
+            // 2. 找到 Data 的起始位置
+            const headerSize = entryBuffer.readUInt16LE(2);
+            const dataStart = headerSize;
+
+            // 3. Data 的第一个字节是 Priority (V, D, I, W, E, F)
+            const priority = entryBuffer[dataStart];
+
+            // 4. 解析 Tag (从 dataStart + 1 开始，直到遇到第一个 \0)
+            let tagEnd = dataStart + 1;
+            while (tagEnd < entryBuffer.length && entryBuffer[tagEnd] !== 0) {
+                tagEnd++;
+            }
+            const tag = entryBuffer.toString('utf8', dataStart + 1, tagEnd);
+
+            // 5. 解析 Message (从 tagEnd + 1 开始，直到遇到下一个 \0 或 Buffer 结束)
+            const msgStart = tagEnd + 1;
+            let msgEnd = msgStart;
+            while (msgEnd < entryBuffer.length && entryBuffer[msgEnd] !== 0) {
+                msgEnd++;
+            }
+            const msg = entryBuffer.toString('utf8', msgStart, msgEnd);
+            console.log(pid, tid, priority, tag, msg);
+            // this.hydrateLogEntry(entry);
         });
 
-        this.logReader.on('error', (err: unknown) => {
-            console.error(`[ADB][${this.deviceId}] log reader error:`, err);
-        });
+        // this.logReader = await this.deviceClient.openLog('main');
+        // this.logReader.on('data', (chunk: Buffer) => {
+        // console.log('chunk length:', chunk.length);
+        // console.log(chunk);
+        // });
 
-        this.logReader.on('end', () => {
-            console.log(`[ADB][${this.deviceId}] log stream ended`);
-            this.clearFlushTimer();
-            this.flushLogs(true);
-            this.logReader = null;
-        });
+        // this.logReader.on('error', (err: unknown) => {
+        //     console.error(`[ADB][${this.deviceId}] log reader error:`, err);
+        // });
+        // const logReader = (await this.deviceClient.openLogcat({
+        //     clear: true,
+        // })) as unknown as LogcatReader;
+
+        // logReader.on('entry', (entry: LogcatEntry) => {
+        //     console.log(entry.tag);
+        //     // this.hydrateLogEntry(entry);
+        // });
+
+        // this.logReader.on('entry', (entry: LogcatEntry) => {
+        //     console.log(entry.tag);
+        //     // this.hydrateLogEntry(entry);
+        // });
+
+        // this.logReader.on('error', (err: unknown) => {
+        //     console.error(`[ADB][${this.deviceId}] log reader error:`, err);
+        // });
+
+        // this.logReader.on('end', () => {
+        //     console.log(`[ADB][${this.deviceId}] log stream ended`);
+        //     this.clearFlushTimer();
+        //     this.flushLogs(true);
+        //     this.logReader = null;
+        // });
     }
 
     public async start(): Promise<void> {

@@ -21,9 +21,14 @@ export class AndroidDevicesMonitor {
     public getClient(): Client {
         return this.client;
     }
+    public gerDevices(): Device[] {
+        return [...this.devices];
+    }
 
     public async startMonitoring() {
-        if (this.tracker) {return;}
+        if (this.tracker) {
+            return;
+        }
 
         try {
             this.devices = await this.client.listDevices();

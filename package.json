@@ -18,6 +18,10 @@
             {
                 "command": "hidka.helloWorld",
                 "title": "Hello World"
+            },
+            {
+                "command": "hidka.showOutput",
+                "title": "Show Output"
             }
         ]
     },

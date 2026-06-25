@@ -7,16 +7,16 @@ export class AndroidDevicesMonitor {
     private static readonly instance: AndroidDevicesMonitor =
         new AndroidDevicesMonitor();
 
+    public static getInstance(): AndroidDevicesMonitor {
+        return AndroidDevicesMonitor.instance;
+    }
+
     private client: Client = Adb.createClient();
     private devices: Device[] = [];
     private tracker: AdbTacker | null = null;
     private listeners = new Set<DevicesListener>();
 
     private constructor() {}
-
-    public static getInstance(): AndroidDevicesMonitor {
-        return AndroidDevicesMonitor.instance;
-    }
 
     public getClient(): Client {
         return this.client;

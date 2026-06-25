@@ -1,4 +1,5 @@
 import { Client, Adb, Device } from '@devicefarmer/adbkit';
+import { Log } from '../common/logger';
 
 type AdbTacker = Awaited<ReturnType<Client['trackDevices']>>;
 type DevicesListener = (devices: Device[]) => void;
@@ -21,7 +22,7 @@ export class AndroidDevicesMonitor {
     public getClient(): Client {
         return this.client;
     }
-    public gerDevices(): Device[] {
+    public getDevices(): Device[] {
         return [...this.devices];
     }
 
@@ -32,7 +33,7 @@ export class AndroidDevicesMonitor {
 
         try {
             this.devices = await this.client.listDevices();
-            console.log(`Find ${this.devices.length} devices:`);
+            Log.info(`Find ${this.devices.length} devices:`);
             this.notifyDevicesChanged();
 
             this.tracker = await this.client.trackDevices();
@@ -40,14 +41,14 @@ export class AndroidDevicesMonitor {
             this.tracker.on('add', (device) => {
                 if (!this.devices.some((d) => d.id === device.id)) {
                     this.devices.push(device);
-                    console.log(`Device ${device.id} was plugged in`);
+                    Log.info(`Device ${device.id} was plugged in`);
                     this.notifyDevicesChanged();
                 }
             });
 
             this.tracker.on('remove', (device) => {
                 this.devices = this.devices.filter((d) => d.id !== device.id);
-                console.log(`Device ${device.id} was unplugged`);
+                Log.info(`Device ${device.id} was unplugged`);
                 this.notifyDevicesChanged();
             });
 
@@ -55,16 +56,16 @@ export class AndroidDevicesMonitor {
                 const index = this.devices.findIndex((d) => d.id === device.id);
                 if (index !== -1) {
                     this.devices[index] = device;
-                    console.log(
+                    Log.info(
                         `Device ${device.id} status changed to ${device.type}`,
                     );
                     this.notifyDevicesChanged();
                 }
             });
 
-            this.tracker.on('end', () => console.log('Tracking stopped'));
+            this.tracker.on('end', () => Log.warn('Tracking stopped'));
         } catch (err) {
-            console.error('Failed to initialize ADB devices:', err);
+            Log.error('Failed to initialize ADB devices:', err);
             throw err;
         }
     }
@@ -84,7 +85,7 @@ export class AndroidDevicesMonitor {
             try {
                 listener(snapshot);
             } catch (err) {
-                console.error('Device listener execution failed:', err);
+                Log.error('Device listener execution failed:', err);
             }
         });
     }
@@ -95,6 +96,6 @@ export class AndroidDevicesMonitor {
         this.devices = [];
         this.listeners.clear();
 
-        console.log('AndroidDevicesMonitor disposed');
+        Log.info('AndroidDevicesMonitor disposed');
     }
 }

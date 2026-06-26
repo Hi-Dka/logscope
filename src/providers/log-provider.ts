@@ -1,5 +1,6 @@
 import { LogEntry } from '../common/types';
 import Denque from 'denque';
+import { Log } from '../common/logger';
 
 type LogDataListener = (data: LogEntry[], sourceId: string) => void;
 
@@ -25,7 +26,7 @@ export abstract class LogProvider {
             try {
                 listener(data, sourceId);
             } catch (err) {
-                console.error('Log data listener execution failed:', err);
+                Log.error('Log data listener execution failed:', err);
             }
         });
     }

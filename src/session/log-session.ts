@@ -1,4 +1,4 @@
-import { AdbLogProvider } from '../providers/adb/adb-provider';
+import { AdbLogProvider } from '../providers/adb/adb-log-provider';
 import { LogEntry } from '../common/types';
 
 export class LogSesion {

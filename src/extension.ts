@@ -2,7 +2,7 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 import { AndroidDevicesMonitor } from './monitor/android-devices-monitor';
-import { AdbLogProvider } from './providers/adb/adb-provider';
+import { AdbLogProvider } from './providers/adb/adb-log-provider';
 import { LogEntry } from './common/types';
 
 // This method is called when your extension is activated

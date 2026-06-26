@@ -6,7 +6,7 @@ export interface LogEntry {
     tid: number;
     tag: string;
     processName?: string;
-    // packageName?: string;
+    packageName?: string;
     level: string;
     message: string;
 }

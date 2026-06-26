@@ -82,7 +82,7 @@ export async function activate(context: vscode.ExtensionContext) {
             output.show(true);
             logger.info('Show Output command executed');
             const androidMonitor = AndroidDevicesMonitor.getInstance();
-            const devices = androidMonitor.gerDevices();
+            const devices = androidMonitor.getDevices();
             devices.forEach((device) => {
                 logger.info(`Device: ${device.id} (${device.type})`);
                 const logProvider = new AdbLogProvider(device.id);

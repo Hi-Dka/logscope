@@ -5,9 +5,7 @@ import { LogEntry } from '../../common/types';
 import Logcat from '@devicefarmer/adbkit-logcat/lib/logcat';
 import Entry from '@devicefarmer/adbkit-logcat/lib/logcat/entry';
 import { Duplex, Transform, TransformCallback } from 'stream';
-import { SignatureHelpTriggerKind } from 'vscode';
-import { log } from 'console';
-import { pid } from 'process';
+import { Log } from '../../common/logger';
 
 type LogcatReader = ReturnType<typeof Logcat.readStream>;
 type LogcatEntry = Entry;
@@ -333,7 +331,7 @@ export class AdbLogProvider extends LogProvider {
         const logParser = new LogParser();
 
         this.logReader = await this.deviceClient.shell(
-            'logcat -c 2>/dev/null && logcat -B *:I 2>/dev/null ',
+            'logcat -c 2>/dev/null && logcat -B *:V 2>/dev/null ',
         );
 
         this.logReader.pipe(logParser);
@@ -363,8 +361,9 @@ export class AdbLogProvider extends LogProvider {
                 msgEnd++;
             }
             const msg = entryBuffer.toString('utf8', msgStart, msgEnd);
-            console.log(pid, tid, priority, tag, msg);
-            // this.hydrateLogEntry(entry);
+            Log.info(
+                `[ADB][${this.deviceId}] log entry: pid=${pid}, tid=${tid}, priority=${priority}, tag=${tag}, message=${msg}`,
+            );
         });
 
         // this.logReader = await this.deviceClient.openLog('main');

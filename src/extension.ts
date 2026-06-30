@@ -4,25 +4,14 @@ import * as vscode from 'vscode';
 import { AndroidDevicesMonitor } from './monitor/android-devices-monitor';
 import { AdbLogProvider } from './providers/adb/adb-log-provider';
 import { LogEntry } from './common/types';
+import { Log } from './common/logger';
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export async function activate(context: vscode.ExtensionContext) {
-    const output = vscode.window.createOutputChannel('LogScope');
-    context.subscriptions.push(output);
+    Log.init(context);
 
-    const logger = {
-        info: (message: string) => {
-            output.appendLine(`[INFO] ${message}`);
-            console.log(message);
-        },
-        error: (message: string) => {
-            output.appendLine(`[ERROR] ${message}`);
-            console.error(message);
-        },
-    };
-
-    logger.info('Congratulations, your extension "hidka" is now active!');
+    Log.info('Congratulations, your extension "hidka" is now active!');
 
     const androidMonitor = AndroidDevicesMonitor.getInstance();
     try {
@@ -30,12 +19,12 @@ export async function activate(context: vscode.ExtensionContext) {
         const unsubscribe = androidMonitor.onDidDevicesChange(
             (devices): void => {
                 if (devices.length === 0) {
-                    logger.info('No Android device connected');
+                    Log.info('No Android device connected');
                     return;
                 }
 
                 devices.forEach((device) => {
-                    logger.info(
+                    Log.info(
                         `Connected device: ${device.id} (${device.type})`,
                     );
                     //     const logProvider = new AdbLogProvider(device.id);
@@ -66,25 +55,25 @@ export async function activate(context: vscode.ExtensionContext) {
     }
 
     // AdbLogProvider()
-    output.show(true);
+    Log.show();
 
     const disposable = vscode.commands.registerCommand(
         'hidka.helloWorld',
         () => {
             vscode.window.showInformationMessage('Hello World from logcat!');
-            logger.info('Hello World command executed');
+            Log.info('Hello World command executed');
         },
     );
 
     const disposable2 = vscode.commands.registerCommand(
         'hidka.showOutput',
         () => {
-            output.show(true);
-            logger.info('Show Output command executed');
+            Log.show();
+            Log.info('Show Output command executed');
             const androidMonitor = AndroidDevicesMonitor.getInstance();
             const devices = androidMonitor.getDevices();
             devices.forEach((device) => {
-                logger.info(`Device: ${device.id} (${device.type})`);
+                // logger.info(`Device: ${device.id} (${device.type})`);
                 const logProvider = new AdbLogProvider(device.id);
 
                 logProvider.onDidData((data: LogEntry[], sourceId: string) => {
@@ -95,7 +84,7 @@ export async function activate(context: vscode.ExtensionContext) {
                 });
 
                 logProvider.start().catch((err) => {
-                    logger.error(
+                    Log.error(
                         `Failed to start log provider for device ${device.id}: ${String(
                             err,
                         )}`,

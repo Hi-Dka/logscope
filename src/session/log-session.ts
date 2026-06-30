@@ -1,5 +1,6 @@
 import { AdbLogProvider } from '../providers/adb/adb-log-provider';
 import { LogEntry } from '../common/types';
+import { Log } from '../common/logger';
 
 export class LogSesion {
     private readonly provider: AdbLogProvider;
@@ -15,7 +16,7 @@ export class LogSesion {
             (data: LogEntry[], sourceId: string) => {
                 for (const entry of data) {
                     const logLine = `[${entry.date} ${entry.time}] [${entry.level}] [${entry.processName ?? 'unknown'}:${entry.pid}] ${entry.tag}: ${entry.message}`;
-                    console.log(`[${sourceId}] ${logLine}`);
+                    Log.info(`[${sourceId}] ${logLine}`);
                 }
             },
         );

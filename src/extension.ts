@@ -49,7 +49,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
         context.subscriptions.push(new vscode.Disposable(unsubscribe));
     } catch (err) {
-        console.error(
+        Log.error(
             `Failed to start Android device monitoring: ${String(err)}`,
         );
     }

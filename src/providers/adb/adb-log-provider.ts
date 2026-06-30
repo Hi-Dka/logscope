@@ -138,13 +138,13 @@ export class AdbLogProvider extends LogProvider {
                 }
             }
 
-            console.log(
+            Log.info(
                 `[ADB][${this.deviceId}] refreshed process name cache with ${nextCache.size} entries`,
             );
 
             this.processNameCache = nextCache;
         } catch (err) {
-            console.error(
+            Log.error(
                 `Failed to refresh process name cache: ${String(err)}`,
             );
         } finally {
@@ -201,7 +201,7 @@ export class AdbLogProvider extends LogProvider {
         }
 
         if (this.droppedLogCount > 0) {
-            console.warn(
+            Log.warn(
                 `[ADB][${this.deviceId}] dropped ${this.droppedLogCount} logs because buffer exceeded ${AdbLogProvider.MAX_BUFFER_SIZE}`,
             );
             this.droppedLogCount = 0;
@@ -368,33 +368,33 @@ export class AdbLogProvider extends LogProvider {
 
         // this.logReader = await this.deviceClient.openLog('main');
         // this.logReader.on('data', (chunk: Buffer) => {
-        // console.log('chunk length:', chunk.length);
-        // console.log(chunk);
+        // Log.info('chunk length:', chunk.length);
+        // Log.info(chunk);
         // });
 
         // this.logReader.on('error', (err: unknown) => {
-        //     console.error(`[ADB][${this.deviceId}] log reader error:`, err);
+        //     Log.error(`[ADB][${this.deviceId}] log reader error:`, err);
         // });
         // const logReader = (await this.deviceClient.openLogcat({
         //     clear: true,
         // })) as unknown as LogcatReader;
 
         // logReader.on('entry', (entry: LogcatEntry) => {
-        //     console.log(entry.tag);
+        //     Log.info(entry.tag);
         //     // this.hydrateLogEntry(entry);
         // });
 
         // this.logReader.on('entry', (entry: LogcatEntry) => {
-        //     console.log(entry.tag);
+        //     Log.info(entry.tag);
         //     // this.hydrateLogEntry(entry);
         // });
 
         // this.logReader.on('error', (err: unknown) => {
-        //     console.error(`[ADB][${this.deviceId}] log reader error:`, err);
+        //     Log.error(`[ADB][${this.deviceId}] log reader error:`, err);
         // });
 
         // this.logReader.on('end', () => {
-        //     console.log(`[ADB][${this.deviceId}] log stream ended`);
+        //     Log.info(`[ADB][${this.deviceId}] log stream ended`);
         //     this.clearFlushTimer();
         //     this.flushLogs(true);
         //     this.logReader = null;
